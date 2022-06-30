@@ -8,22 +8,12 @@
 
 MPI_Status status;
 
-MX_TYPE   **m1,
-          **m2,
-          **m3;
+MX_TYPE m1[NUM][NUM],m2[NUM][NUM],m3[NUM][NUM];
 
 int main()
 {
-  ID_TYPE i, j, k;
 
-  m1= malloc(NUM * NUM * sizeof(MX_TYPE*));
-  m2= malloc(NUM * NUM * sizeof(MX_TYPE*));
-  m3= malloc(NUM * NUM * sizeof(MX_TYPE*));
-  for(i = 0; i <= NUM; i++){
-    m1[i] = malloc(NUM*NUM*sizeof(MX_TYPE));
-    m2[i] = malloc(NUM*NUM*sizeof(MX_TYPE));
-    m3[i] = calloc(NUM*NUM,sizeof(MX_TYPE));
-  }
+  ID_TYPE i, j, k;
 
   /* inicio inicialização MPI */
 
@@ -51,8 +41,8 @@ int main()
 
     for(i = 0; i<NUM; i++){
       for(j = 0; j<NUM; j++){
-        m1_1d[NUM*i+j] = i;
-        m2_1d[NUM*i+j] = j;
+        m1[i][j] = i;
+        m2[i][j] = j;
       }
     }
     printf("OK\n");
@@ -60,9 +50,9 @@ int main()
   // Determinando número de linhas da matriz A que serão enviadas para cada processo
     linhas = NUM/size;
   // Variável offset que determina o início
-    offset = linhas;
+    offset = 0;
 
-    for (i=1; i <= size-1; dest++)
+    for (i=1; i <= size-1; i++)
     {
       // Enviando o offset da matriz A
       MPI_Send(&offset, 1, MPI_INT, i, 1, MPI_COMM_WORLD);
@@ -77,13 +67,13 @@ int main()
       offset = offset + linhas;
     }
 
-    // multiplicando matrizes 1 e 2, salvando resultado na matriz 3
-    for (ID_TYPE k = 0; k<NUM; k++) {
-      for (ID_TYPE i = 0; i<linhas; i++) {
-        for (ID_TYPE j = 0; j<NUM; j++)
-          m3[i][k] += m1[i][j] * m2[j][k];
-      }
-    }
+    // // multiplicando matrizes 1 e 2, salvando resultado na matriz 3
+    // for (ID_TYPE k = 0; k<NUM; k++) {
+    //   for (ID_TYPE i = 0; i<linhas; i++) {
+    //     for (ID_TYPE j = 0; j<NUM; j++)
+    //       m3[i][k] += m1[i][j] * m2[j][k];
+    //   }
+    // }
 
     // Root process waits untill the each slave proces sent their calculated result with message tag 2
     for (int i = 1; i <= size-1; i++)
@@ -121,6 +111,7 @@ int main()
     // multiplicando matrizes 1 e 2, salvando resultado na matriz 3
     for (ID_TYPE k = 0; k<NUM; k++) {
       for (ID_TYPE i = 0; i<linhas; i++) {
+        m3[i][k] = 0.0;
         for (ID_TYPE j = 0; j<NUM; j++)
           m3[i][k] += m1[i][j] * m2[j][k];
       }
@@ -134,17 +125,8 @@ int main()
     // Number of rows the process calculated will be sent to root process
     MPI_Send(&linhas, 1, MPI_INT, 0, 2, MPI_COMM_WORLD);
     // Resulting matrix with calculated rows will be sent to root process
-    MPI_Send(&m3, linhas*N, MPI_DOUBLE, 0, 2, MPI_COMM_WORLD);
+    MPI_Send(&m3, linhas*NUM, MPI_DOUBLE, 0, 2, MPI_COMM_WORLD);
   }
-
-  for(i = 0; i <= NUM; i++){
-    free(m1[i]);
-    free(m2[i]);
-    free(m3[i]);
-  }
-  free(m1);
-  free(m2);
-  free(m3);
 
   MPI_Finalize();
 
